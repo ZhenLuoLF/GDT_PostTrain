@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zpikin-server
+    ports:
+      - "9411:9411"
+    networks:
+      - docker-network
+    
+  mysql:
+    image: mysql:8.4
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init-scripts:/docker-entrypoint-initdb.d  # Mount initialization scripts
+    networks:
+      - docker-network
+    
+  eureka-server:
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - docker-network
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka
+    networks:
+      - docker-network
+    depends_on:
+      - eureka-server
+
+  product-catalog-service:
+    build:
+      context: ./product-catalog-service
+      dockerfile: Dockerfile
+    container_name: product-catalog-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka
+    networks:
+      - docker-network
+    depends_on:
+      - eureka-server
+      - mysql
+      - zipkin
+
+  account-management-service:
+    build:
+      context: ./account-management-service
+      dockerfile: Dockerfile
+    container_name: account-management-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka
+    networks:
+      - docker-network
+    depends_on:
+      - eureka-server
+      - mysql
+      - zipkin
+
+
+volumes:
+  mysql_data:
+
+networks:
+  docker-network:
+  

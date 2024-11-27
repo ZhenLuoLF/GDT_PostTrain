@@ -1,0 +1,98 @@
+spring:
+  application:
+    name: account-management-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/account_management_service
+    username: root
+    password: password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+  zipkin:
+    base-url: http://localhost:9411
+
+logging:
+  file:
+    path: /Users/zhenluo/Downloads/logs/microservice.log
+
+server:
+  port: 8082
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  zipkin:
+    enabled: true
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+  health:
+    circuitbreakers:
+      enabled: true
+#    ratelimiters:         #when using rate limiter
+#      enabled: true
+#    bulkhead:         #when using blukhead
+#      enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      productCatalogService:
+        register-health-indicator: true
+        event-consumer-buffer-size: 10
+        failure-rate-threshold: 50
+        minimum-number-of-calls: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 3
+        sliding-window-size: 10
+        sliding-window-type: COUNT_BASED
+
+#  retry:
+#    instances:
+#      productCatalogService:
+#        max-attempts: 5
+#        waitDuration: 10s
+#
+#resilience4j.ratelimiter:
+#  instances:
+#    productCatalogService:
+#      limitRefreshPeriod: 1s
+#      limitForPeriod: 5
+#      timeoutDuration: 3s
+#      registerHealthIndicator: true    #To register ratelimiter details to /actuator/health endpoint.
+#      eventConsumerBufferSize: 100     #Buffer size to store the ratelimiter events - viewable via /actuator/ratelimiterevents
+
+
+##Threadpool bulkhead
+#resilience4j.thread-pool-bulkhead:
+#  instances:
+#    productCatalogService:
+#      maxThreadPoolSize: 3
+#      coreThreadPoolSize: 2
+#      queueCapacity: 1
+#      keepAliveDuration: 20ms
+
+
+##Semaphore bulkhead
+#resilience4j.bulkhead:
+#  instances:
+#    productCatalogService:
+#      maxConcurrentCalls: 2  #Max Amount of parallel execution allowed by bulkhead.
+#      maxWaitDuration: 5s
